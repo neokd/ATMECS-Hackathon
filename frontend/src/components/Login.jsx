@@ -21,7 +21,8 @@ const Login = () => {
             setMessage(data.message);
             if (data.access_token) {
                 localStorage.setItem('token', data.access_token);
-                localStorage.setItem('user', data.user);
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('user_id', data.user_id);
                 navigateTo('/chat');
             }
         } catch (error) {

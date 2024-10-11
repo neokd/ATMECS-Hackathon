@@ -5,16 +5,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from models import Register, Login
+from models import Register, Login, UserQuery
 from sqlalchemy.orm.exc import NoResultFound
 from fastapi.security import OAuth2PasswordBearer
 import os
 import uuid
+from llm import LLM
+from fastapi.responses import StreamingResponse
+import json
 
 app = FastAPI()
 Base = declarative_base()
 DATABASE_URL = "sqlite:///test.db"
-SECRET_KEY = "your-secret-key"  # Use a strong secret key for production
+SECRET_KEY = "your-secret-key"  
+
 
 # JWT Configuration
 ALGORITHM = "HS256"
@@ -119,3 +123,66 @@ async def login(user: Login):
     finally:
         db.close()
 
+@app.post("/api/chat")
+async def call_llm(query: UserQuery):
+    # Retriver Logic will come here
+    """
+    This function will call the LLM model to generate responses based on the user's input.
+    """
+    data = [
+    {
+        "content": "Hello, how can I help you today?",
+        "score": 0.9,
+        "source": {
+            "title": "Customer Service Handbook",
+            "url": "https://example.com/customer-service-handbook",
+            "author": "John Doe",
+            "date": "2023-10-01"
+        }
+    },
+    {
+        "content": "Our company was founded in 1995 and has been providing quality services ever since.",
+        "score": 0.8,
+        "source": {
+            "title": "Company History Overview",
+            "url": "https://example.com/company-history",
+            "author": "Company Archives",
+            "date": "2022-08-15"
+        }
+    },
+    {
+        "content": "The latest trends in AI involve using transformer models for natural language processing tasks.",
+        "score": 0.95,
+        "source": {
+            "title": "AI Trends 2024",
+            "url": "https://ai-news.com/ai-trends-2024",
+            "author": "AI Research Institute",
+            "date": "2024-02-11"
+        }
+    },
+    {
+        "content": "Implementing secure cloud storage is critical to ensuring data privacy and compliance with GDPR.",
+        "score": 0.85,
+        "source": {
+            "title": "Data Privacy in the Cloud",
+            "url": "https://tech-security.com/data-privacy-cloud",
+            "author": "Jane Smith",
+            "date": "2023-07-21"
+        }
+    }
+]
+
+    async def stream_results():
+        completion = ""
+        llm = LLM()
+        yield json.dumps({"data": data, "type": "source_documents"}) + "\n"
+        async for chunk in llm.infer(query.messages):
+            if chunk.usage:
+                completion_tokens = chunk.usage.completion_tokens
+                prompt_tokens = chunk.usage.prompt_tokens
+                total_tokens = chunk.usage.total_tokens
+            content = chunk.choices[0].delta.content or ""
+            completion += content
+            yield json.dumps({"content": content , "type": "response"}) + "\n"
+    return StreamingResponse(stream_results(), media_type="application/json")
+    
