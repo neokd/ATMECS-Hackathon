@@ -1,6 +1,6 @@
 import jwt
 from datetime import datetime, timedelta
-from fastapi import FastAPI, status, Depends
+from fastapi import FastAPI, status, Depends, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, String
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,12 +13,17 @@ import uuid
 from llm import LLM
 from fastapi.responses import StreamingResponse
 import json
+from langchain.text_splitter import RecursiveCharacterTextSplitter  # Alternative splitter
+from langchain_huggingface import HuggingFaceEmbeddings
+from vector_rag import load_pdf, initialize_qdrant_client, create_vector_store, perform_similarity_search
 
 app = FastAPI()
 Base = declarative_base()
 DATABASE_URL = "sqlite:///test.db"
 SECRET_KEY = "your-secret-key"  
 
+collection_name = "hridaai"
+embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 # JWT Configuration
 ALGORITHM = "HS256"
@@ -91,7 +96,6 @@ async def register(user: Register):
         "token_type": "bearer"
     }
 
-
 @app.post('/api/login')
 async def login(user: Login):
     db = SessionLocal()
@@ -123,59 +127,33 @@ async def login(user: Login):
     finally:
         db.close()
 
+@app.post("/api/ingest")
+async def vector_ingest(file: UploadFile):
+    pages = load_pdf(file)
+
+    # Use alternative text splitter
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    semantic_docs = text_splitter.create_documents(pages)
+
+    client = initialize_qdrant_client()
+    vector_store = create_vector_store(client, collection_name, embeddings_model, semantic_docs)
+
+    return {'status':'success', 'message':'Vectors created and stored'}
+
 @app.post("/api/chat")
 async def call_llm(query: UserQuery):
-    # Retriver Logic will come here
     """
     This function will call the LLM model to generate responses based on the user's input.
     """
-    data = [
-    {
-        "content": "Hello, how can I help you today?",
-        "score": 0.9,
-        "source": {
-            "title": "Customer Service Handbook",
-            "url": "https://example.com/customer-service-handbook",
-            "author": "John Doe",
-            "date": "2023-10-01"
-        }
-    },
-    {
-        "content": "Our company was founded in 1995 and has been providing quality services ever since.",
-        "score": 0.8,
-        "source": {
-            "title": "Company History Overview",
-            "url": "https://example.com/company-history",
-            "author": "Company Archives",
-            "date": "2022-08-15"
-        }
-    },
-    {
-        "content": "The latest trends in AI involve using transformer models for natural language processing tasks.",
-        "score": 0.95,
-        "source": {
-            "title": "AI Trends 2024",
-            "url": "https://ai-news.com/ai-trends-2024",
-            "author": "AI Research Institute",
-            "date": "2024-02-11"
-        }
-    },
-    {
-        "content": "Implementing secure cloud storage is critical to ensuring data privacy and compliance with GDPR.",
-        "score": 0.85,
-        "source": {
-            "title": "Data Privacy in the Cloud",
-            "url": "https://tech-security.com/data-privacy-cloud",
-            "author": "Jane Smith",
-            "date": "2023-07-21"
-        }
-    }
-]
+    client = initialize_qdrant_client()
+    vector_store = create_vector_store(client, collection_name, embeddings_model)
+
+    relevant_results = perform_similarity_search(vector_store, query.messages[-1].content, k=3)
 
     async def stream_results():
         completion = ""
         llm = LLM()
-        yield json.dumps({"data": data, "type": "source_documents"}) + "\n"
+        yield json.dumps({"data": relevant_results, "type": "source_documents"}) + "\n"
         async for chunk in llm.infer(query.messages):
             if chunk.usage:
                 completion_tokens = chunk.usage.completion_tokens
@@ -184,5 +162,9 @@ async def call_llm(query: UserQuery):
             content = chunk.choices[0].delta.content or ""
             completion += content
             yield json.dumps({"content": content , "type": "response"}) + "\n"
+
     return StreamingResponse(stream_results(), media_type="application/json")
-    
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
