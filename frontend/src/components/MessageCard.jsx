@@ -3,7 +3,7 @@ import * as docx from 'docx';
 import { jsPDF } from 'jspdf';
 import remarkGfm from 'remark-gfm'
 import TextareaAutosize from 'react-textarea-autosize';
-import { BotIcon, ClipboardCheck, Copy, Download, FileDown, FileText, FileType, Forward, RefreshCcw, ThumbsDown, UserRound } from 'lucide-react';
+import { BookmarkCheck, BotIcon, ClipboardCheck, Copy, Download, FileDown, FileText, FileType, Forward, RefreshCcw, ThumbsDown, UserRound, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -104,7 +104,15 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
         handleDownload(format);
     };
 
+    const [selectedDocument, setSelectedDocument] = useState(null);
 
+    const handleDocumentClick = (doc) => {
+        setSelectedDocument(doc); // Set the clicked document as selected
+    };
+
+    const closeModal = () => {
+        setSelectedDocument(null); // Close the modal by resetting selectedDocument
+    };
 
     return (
         <>
@@ -117,7 +125,7 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
 
                 ) : (
                     // <Bot className="text-white p-2 bg-[#0084ff] mx-2 relative w-12 h-12 mr-auto rounded-2xl overflow-hidden shadow-[0_0_0_0.25rem_#FEFEFE] dark:shadow-[0_0_0_0.25rem_#232627] transform -translate-y-2" size={48} />
-                    <div className="flex items-stretch justify-between">
+                    <div className="flex justify-normal ">
                         {/* Bot on the left */}
                         {/* <Bot className="text-white p-2 bg-[#0084ff] mx-2 relative w-12 h-12 rounded-2xl overflow-hidden shadow-[0_0_0_0.25rem_#FEFEFE] dark:shadow-[0_0_0_0.25rem_#232627] transform -translate-y-4" size={48} /> */}
                         <div className="">
@@ -141,24 +149,6 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
                             </div>
                         )} */}
 
-                        {
-                            role === 'assistant' && lastMessageIndex && sourceDocuments.length > 0 && (
-                                <div className="px-4 mt-12 flex flex-row overflow-x-auto min-h- scrollbar-none">
-                                    {sourceDocuments.map((doc, index) => (
-                                        <div
-                                            key={index}
-                                            className="bg-[#e7dcfa] text-black py-4 px-6 rounded-lg transition-transform transform hover:scale-105 hover:shadow-lg shadow-md dark:bg-[#3b314f] dark:text-gray-50 dark:hover:bg-purple-600 dark:hover:text-white min-w-[300px] mx-4 flex-shrink-0">
-                                            <div className="text-base font-semibold mb-2 max-w-72 ">
-                                                {doc.content}
-                                            </div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                Confidence Score: {doc.score.toFixed(2)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )
-                        }
 
 
                         {/* Text and buttons on the right */}
@@ -209,8 +199,13 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
                                 <ThumbsDown className="text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white" size={16} />
                                 <span className="absolute top-6 -left-1 -translate-x-1/2 scale-0 group-hover:scale-100 transition-all bg-purple-500 p-2 rounded text-white text-xs ">Dislike</span>
                             </button>
+                            <button className="px-2 transform transition-transform duration-300 group hover:scale-105" onClick={() => sendNotification('Your Decision has been noted for future monitoring')}>
+                                <BookmarkCheck className="text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white" size={16} />
+                                <span className="absolute top-6 -left-1 -translate-x-1/2 scale-0 group-hover:scale-100 transition-all bg-purple-500 p-2 rounded text-white text-xs ">BookMark</span>
+                            </button>
 
                         </div>
+
 
                     </div>
 
@@ -218,6 +213,7 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
                 {/* {role === 'assistant' && (
                        
                     )} */}
+
                 <div className={`p-4 dark:text-gray-50 text-md font-sans ${role === 'user' ? 'dark:bg-[#19191c] border space-y-6 pt-6 px-6  border-3 border-n-2 rounded-[1.25rem] md:p-5 dark:border-transparent dark:bg-n-5/50 shadow-md' : 'dark:bg-[#141617] bg-[#f2f5f7] border space-y-6 pt-6 px-6 border-3 border-n-2 rounded-[1.25rem] md:p-5  dark:border-transparent dark:bg-n-5/50 shadow-md'} flex flex-1 flex-col dark:bg-dark-200 overflow-x-auto rounded-lg  space-y-4 lg:min-w-96`}>
                     <Markdown
                         remarkPlugins={[remarkGfm]}
@@ -289,7 +285,53 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
 
                 </div>
 
+
             </div>
+            <div>
+                {role === 'assistant' && lastMessageIndex && sourceDocuments.length > 0 && (
+                    <div className="mt-4 h-36 flex flex-row overflow-x-auto min-h- scrollbar-none z-50">
+                        {sourceDocuments.map((doc, index) => (
+                            <div
+                                key={index}
+                                className="bg-[#e7dcfa] text-black py-4 px-6 rounded-lg transition-transform transform hover:scale-105 my-2 hover:shadow-lg shadow-md dark:bg-[#3b314f] dark:text-gray-50 dark:hover:bg-purple-600 dark:hover:text-white min-w-[300px] mx-4 flex-shrink-0 cursor-pointer"
+                                onClick={() => handleDocumentClick(doc)} // Handle click to show modal
+                            >
+                                <div className="text-base font-semibold mb-2 max-w-72 line-clamp-2">
+                                    {doc.content}
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Confidence Score: {doc.score.toFixed(2)}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Modal for viewing the full content */}
+                {selectedDocument && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 ease-in-out">
+                        <div className="relative bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl max-w-3xl w-full mx-4 transform transition-transform duration-500 ease-in-out">
+                            <button
+                                onClick={closeModal}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                            >
+                                <X size={24} />
+                            </button>
+                            <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-white">
+                                Source Document
+                            </h2>
+                            <h3 className="text-xl font-semibold  dark:text-blue-400 mb-4">
+                                Confidence Score: <span className='bg-green-500 text-white p-2 rounded-xl'>{selectedDocument.score.toFixed(2)}</span>
+                            </h3>
+                            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+                                {selectedDocument.content}
+                            </p>
+                        </div>
+                    </div>
+
+                )}
+            </div>
+
 
 
 

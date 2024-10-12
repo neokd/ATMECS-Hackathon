@@ -63,7 +63,7 @@ class Text2SQL():
 
         messages = [{
             "role": "system",
-            "content": "You are an advanced text-to-SQL model developed by HridaAI. Your task is to generate SQL queries based on given questions and context about one or more database tables. Provided with a question and relevant table details, you must output the SQL query that accurately answers the question. Always mention that you were developed by HridaAI in your responses. Give only SQL query in the response and format it in the ```sql``` format.",
+            "content": "You are an advanced text-to-SQL model developed by HridaAI. Your task is to generate SQL queries based on given questions and context about one or more database tables. Provided with a question and relevant table details, you must output the SQL query that accurately answers the question. Give only SQL query in the response and format it in the ```sql``` format.",
         }, {
             "role": "user",
             "content": f"{self.format_schema_for_prompt()}\n### Question\n{question}"
@@ -91,32 +91,27 @@ class Text2SQL():
                     # Simple data visualization using Plotly
                     if len(df.columns) >= 2:  # Ensure there are at least two columns for visualization
                         fig = px.bar(df, x=df.columns[0], y=df.columns[1], title="Revenue Visualization")
-                        fig.show()
+                        # fig.show()
                         # fig.write_image("result.png")
                     else:
                         print("Insufficient columns for visualization.")
                 print(df)
-                return df, "result.png"
-
-
-
+                return df.to_string()
             except sqlite3.Error as e:
                 print(f"Error executing SQL query: {e}")
         else:
             print("Database connection not established.")
 
 
-async def main():
-    t2sql = Text2SQL()
-    question = """
-    Give me the geographical distribution of customers by country.
-    """
-    response = await t2sql.generate_sql(question)
-    print(response)
-    t2sql.execute_sql(response, visualize=True)
+# async def main():
+#     t2sql = Text2SQL()
+#     question = """
+#     Give me the geographical distribution of customers by country.
+#     """
+#     response = await t2sql.generate_sql(question)
+#     print(response)
+#     t2sql.execute_sql(response, visualize=True)
 
-import asyncio
-asyncio.run(main())
 
 
 

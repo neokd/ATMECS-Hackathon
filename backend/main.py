@@ -16,6 +16,7 @@ import json
 from langchain.text_splitter import RecursiveCharacterTextSplitter  # Alternative splitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from vector_rag import load_pdf, initialize_qdrant_client, create_vector_store, perform_similarity_search
+from t2sql import Text2SQL
 
 app = FastAPI()
 Base = declarative_base()
@@ -129,7 +130,7 @@ async def login(user: Login):
 
 @app.post("/api/ingest")
 async def vector_ingest(file: UploadFile):
-    pages = load_pdf(file)
+    pages = load_pdf(file.filename)
 
     # Use alternative text splitter
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -140,30 +141,74 @@ async def vector_ingest(file: UploadFile):
 
     return {'status':'success', 'message':'Vectors created and stored'}
 
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import json
+from typing import Dict
+
+app = FastAPI()
+
 @app.post("/api/chat")
 async def call_llm(query: UserQuery):
     """
     This function will call the LLM model to generate responses based on the user's input.
     """
+    t2sql = Text2SQL()
     client = initialize_qdrant_client()
     vector_store = create_vector_store(client, collection_name, embeddings_model)
+    
+    # Perform the similarity search
+    relevant_results = perform_similarity_search(vector_store, query.messages[-1]["content"], k=5)
+    print("Relevant results:", relevant_results)
+    
+    # Generate the SQL query asynchronously
+    response = await t2sql.generate_sql(query.messages[-1]["content"])
 
-    relevant_results = perform_similarity_search(vector_store, query.messages[-1].content, k=3)
+    # Execute the SQL query (if you want to visualize, adjust this method to work with async if necessary)
+    response = t2sql.execute_sql(response, visualize=False)
+    # Context: {" ".join([res['content'] for res in relevant_results])}
+    llm_query = [
+        {
+            "role": "system",
+            "content": "You are an assistant tasked with answering questions. Use the provided retrieved context or SQL context to formulate your response based on the nature of the question. If the question relates to financial data or business output, select the SQL context to answer appropriately. If you're unsure of the answer, simply state that you don't know. Format the output in a proper markdown format. Use tables for structured data and bullet points for lists. Provide a clear and concise response. Provide action items and suggestions if necessary."
+        },
+        {
+            "role": "user",
+            "content": f"""
+                SQL Context: {response}
+                Question: {query.messages[-1]["content"]}
+            """
+        }
+    ]
+
+    query.messages[-1]["content"] = llm_query
+
 
     async def stream_results():
         completion = ""
         llm = LLM()
+
+
+        
+        # Yield the similarity search results first
         yield json.dumps({"data": relevant_results, "type": "source_documents"}) + "\n"
-        async for chunk in llm.infer(query.messages):
+        
+        # Stream the results from the LLM inference
+        async for chunk in llm.infer(llm_query):
             if chunk.usage:
                 completion_tokens = chunk.usage.completion_tokens
                 prompt_tokens = chunk.usage.prompt_tokens
                 total_tokens = chunk.usage.total_tokens
+            
+            # Extract and yield the content of the response
             content = chunk.choices[0].delta.content or ""
             completion += content
-            yield json.dumps({"content": content , "type": "response"}) + "\n"
-
+            yield json.dumps({"content": content, "type": "response"}) + "\n"
+    
+    # Stream the response using StreamingResponse
     return StreamingResponse(stream_results(), media_type="application/json")
+
 
 if __name__ == "__main__":
     import uvicorn

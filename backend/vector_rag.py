@@ -1,4 +1,5 @@
 import os
+import httpx
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
@@ -10,13 +11,39 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from a .env file
 
+def spro_protect_text(text):
+    """Protect sensitive information in the text."""
+    # API details
+    url = 'https://spro.hridaai.com/v1/redact'
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "api_key": "spro-sfVe4a5Ic10CiGuoIZxXj24123vtMYz2rt9S6uUWWW8",
+        "prompt": text,
+        "entities": ["PHONE_NUMBER", "EMAIL", "PERSON"]
+    }
+    
+    # Call the API
+    response = httpx.post(url, headers=headers, json=data)
+    print(response)
+    # Ensure the request was successful
+    if response.status_code == 200:
+        # Parse the JSON response
+        response_data = response.json()
+        return response_data.get("redacted_text", "")
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+
+
 @staticmethod
 def load_pdf(file_path):
     """Load and return page content from a PDF file."""
     try:
         loader = PyPDFLoader(file_path)
         docs = loader.load()
-        return [doc.page_content for doc in docs]
+        return [spro_protect_text(doc.page_content) for doc in docs]
     except FileNotFoundError:
         print(f"File not found: {file_path}")
         return []
@@ -92,32 +119,32 @@ def invoke_llm(relevant_results, query, api_key):
     ai_msg = llm.invoke(messages)
     return ai_msg.content
 
-def main():
-    file_path = "Press Release - INR.pdf"
-    collection_name = "hridaai"
-    query = "What is the revenue for June 2023"
-    api_key = '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'
+# def main():
+#     file_path = "Press Release - INR.pdf"
+#     collection_name = "hridaai"
+#     query = "What is the revenue for June 2023"
+#     api_key = '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'
 
-    pages = load_pdf(file_path)
-    if not pages:
-        print("No pages loaded from PDF.")
-        return
+#     pages = load_pdf(file_path)
+#     if not pages:
+#         print("No pages loaded from PDF.")
+#         return
 
-    embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-    text_splitter = SemanticChunker(embeddings_model)
-    semantic_docs = text_splitter.create_documents(pages)
+#     embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+#     text_splitter = SemanticChunker(embeddings_model)
+#     semantic_docs = text_splitter.create_documents(pages)
     
-    client = initialize_qdrant_client()
-    vector_store = create_vector_store(client, collection_name, embeddings_model, semantic_docs)
+#     client = initialize_qdrant_client()
+#     vector_store = create_vector_store(client, collection_name, embeddings_model, semantic_docs)
     
-    relevant_results = perform_similarity_search(vector_store, query, k=5)
-    print("Relevant Results:", relevant_results)
+#     relevant_results = perform_similarity_search(vector_store, query, k=5)
+#     print("Relevant Results:", relevant_results)
 
-    if relevant_results:
-        response = invoke_llm(relevant_results, query, api_key)
-        print("AI Response:", response)
-    else:
-        print("No relevant results found for the query.")
+#     if relevant_results:
+#         response = invoke_llm(relevant_results, query, api_key)
+#         print("AI Response:", response)
+#     else:
+#         print("No relevant results found for the query.")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

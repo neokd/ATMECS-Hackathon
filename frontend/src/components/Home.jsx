@@ -104,7 +104,7 @@ function Home() {
       sendMessageToServer(lastMessage.content); // Send request to regenerate last assistant message
     }
   };
-
+  
 
   useEffect(() => {
     if (messages.length === 0 && userSearch) {
@@ -138,6 +138,7 @@ function Home() {
                     lastMessageIndex={index === messages.length - 1 && msg.role === 'assistant'}
                     sendMessage={sendMessageToServer}
                     sourceDocuments={sourceDocuments}
+
                     sendNotification={sendNotification}
                   />
                 ))}
