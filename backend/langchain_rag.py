@@ -212,7 +212,7 @@ def invoke_llm(relavant_results, query, api_key):
 def main():
     file_path = "Press Release - INR.pdf"
     collection_name = "hridaai"
-    query = "how many headcount for last quarter?"
+    query = "What is the revenue for June 2022"
     api_key = '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'
 
     pages = load_pdf(file_path)
