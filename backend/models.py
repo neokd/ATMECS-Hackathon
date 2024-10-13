@@ -12,3 +12,13 @@ class Login(BaseModel):
 
 class UserQuery(BaseModel):
     messages: List[Dict]
+
+class Perspective(BaseModel):
+    text: str
+    persona: str = "default"
+
+class Tracking(BaseModel):
+    user_id: str
+    text: str
+    persona: str = "default"
+    user_query: str

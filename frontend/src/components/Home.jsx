@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import ChatInput from './ChatInput';
@@ -8,7 +8,10 @@ import Notification from './Notification';
 function Home() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([{
+    role: 'assistant',
+    content: 'Hello! I am your virtual assistant. How can I help you today?',
+  }]);
   const [loading, setLoading] = useState(false);
   const [sourceDocuments, setSourceDocuments] = useState([]);
   const [nextBestChoice, setNextBestChoice] = useState([]);
@@ -16,10 +19,21 @@ function Home() {
   const [userOrg, setUserOrg] = useState('user');
   const [userSearch, setUserSearch] = useState('');
   const [notifications, setNotifications] = useState([]);
-
+  const chatEndRef = useRef(null);
   const sendNotification = (message) => {
     setNotifications((prev) => [...prev, message]); // Add a new notification
   };
+  
+  const scrollToBottom = () => {
+    if (chatEndRef.current) {
+        chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    }
+};
+
+useEffect(() => {
+  scrollToBottom();
+}, [messages]);
 
   const handleCloseNotification = (index) => {
     setNotifications((prev) => prev.filter((_, i) => i !== index)); // Remove notification by index
@@ -88,8 +102,6 @@ function Home() {
             }
           }
         });
-
-
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -150,12 +162,13 @@ function Home() {
                   onClose={() => handleCloseNotification(index)}
                 />
               ))}
+               <div ref={chatEndRef} className="h-0" />
 
             </div>
 
             {/* Chat input stuck at the bottom */}
             <div className="flex-shrink-0 w-full max-w-[1200px]">
-              <ChatInput sendMessage={sendMessageToServer} />
+              <ChatInput sendMessage={sendMessageToServer} sendImage={ {} } sendNotification={sendNotification} />
             </div>
           </div>
         </div>

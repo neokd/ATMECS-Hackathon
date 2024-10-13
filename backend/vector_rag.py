@@ -14,7 +14,7 @@ load_dotenv()  # Load environment variables from a .env file
 def spro_protect_text(text):
     """Protect sensitive information in the text."""
     # API details
-    url = 'https://spro.hridaai.com/v1/redact'
+    url = 'https://ubuntu.tailc2727.ts.net/v1/redact'
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json'

@@ -1,12 +1,18 @@
 from llm import LLM
 import sqlite3
 import pandas as pd
+from openai import OpenAI
 import plotly.express as px
+import os
+from dotenv import load_dotenv
 # client = LLM()
-
+load_dotenv()
 class Text2SQL():
     def __init__(self) -> None:
-        self.client = LLM()
+        self.client = OpenAI(
+            api_key=os.getenv("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1"
+        )
         self.db_path = "business.db"
         self.connection = None
         self.schema = None
@@ -69,8 +75,20 @@ class Text2SQL():
             "content": f"{self.format_schema_for_prompt()}\n### Question\n{question}"
         }]
         query = ""
-        async for response in self.client.infer(messages):
-            query += response.choices[0].delta.content or ""
+
+        # api_key = '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'
+
+        for chunk in self.client.chat.completions.create(
+            messages=messages,
+            model="llama-3.2-11b-text-preview",
+            stream=True
+        ):
+            print(chunk)
+            if chunk.choices:
+                query += chunk.choices[0].delta.content or ""
+
+            
+
 
         # parse query from ```sql``` format
         query = query.replace("```sql", "").replace("```", "").strip()

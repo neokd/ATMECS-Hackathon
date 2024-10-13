@@ -293,7 +293,7 @@ function MessageCard({ content, role, onRegenerate, sourceDocuments, lastMessage
                         {sourceDocuments.map((doc, index) => (
                             <div
                                 key={index}
-                                className="bg-[#e7dcfa] text-black py-4 px-6 rounded-lg transition-transform transform hover:scale-105 my-2 hover:shadow-lg shadow-md dark:bg-[#3b314f] dark:text-gray-50 dark:hover:bg-purple-600 dark:hover:text-white min-w-[300px] mx-4 flex-shrink-0 cursor-pointer"
+                                className="bg-[#e7dcfa] text-black py-4 px-6 rounded-lg transition-transform transform hover:scale-105 my-2 hover:shadow-lg shadow-md dark:bg-[#3b314f] dark:text-gray-50 dark:hover:bg-purple-600 dark:hover:text-white min-w-[370px] mx-4 flex-shrink-0 cursor-pointer"
                                 onClick={() => handleDocumentClick(doc)} // Handle click to show modal
                             >
                                 <div className="text-base font-semibold mb-2 max-w-72 line-clamp-2">

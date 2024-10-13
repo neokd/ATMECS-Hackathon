@@ -2,18 +2,20 @@ from openai import AsyncOpenAI
 from typing import AsyncGenerator
 from typing import Dict
 from typing import List
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
 class LLM:
     def __init__(self):
         self.client = AsyncOpenAI(
-                base_url="https://api.groq.com/openai/v1",
-                api_key="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"
+                base_url="https://api.together.xyz/v1",
+                api_key=os.getenv("TOGETHER_API_KEY"),
         )
 
     async def infer(self, messages: List[Dict[str, str]]) -> AsyncGenerator:
 
         chat_completion = await self.client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="meta-llama/Llama-Vision-Free",
             messages=messages,
             stream=True,
         )

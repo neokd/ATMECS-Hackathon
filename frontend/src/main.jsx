@@ -10,6 +10,9 @@ import Login from './components/Login.jsx';
 import SignUp from './components/Signup.jsx';
 import Home from './components/Home.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import SearchChat from './components/SearchChat.jsx';
+import DecisionAccelerator from './components/DecisionAccelerator.jsx';
+import Monitoring from './components/Monitoring.jsx';
 
 const router = createBrowserRouter([
   {
@@ -23,6 +26,18 @@ const router = createBrowserRouter([
   {
     path: "/signup",
     element: <SignUp/>,
+  },
+  {
+    path: "/home",
+    element: <SearchChat />,
+  },
+  {
+    path: "/da",
+    element: <DecisionAccelerator />,
+  },
+  {
+    path:"/track",
+    element: <Monitoring />,
   },
   {
     path: "/chat",

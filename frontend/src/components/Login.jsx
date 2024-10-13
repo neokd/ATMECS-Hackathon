@@ -23,7 +23,7 @@ const Login = () => {
                 localStorage.setItem('token', data.access_token);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('user_id', data.user_id);
-                navigateTo('/chat');
+                navigateTo('/home');
             }
         } catch (error) {
             setMessage('Login failed. Please check your credentials.');
